@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Context-Aware English Dictionary",
+  "version": "1.0.0",
+  "description": "드래그한 영어 단어의 문맥에 맞는 뜻을 LLM으로 제공하는 확장 프로그램",
+  
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus"
+  ],
+  
+  "host_permissions": [
+    "https://api.openai.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "설정"
+  },
+  
+  "icons": {
+    "16": "icons/icon16.svg",
+    "32": "icons/icon32.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  }
+}
