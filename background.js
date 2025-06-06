@@ -1,4 +1,4 @@
-// Background Service Worker - OpenAI API와 통신하여 번역 처리
+// Background Service Worker - HuggingFace phi-2 모델과 통신하여 번역 처리
 
 // 메시지 리스너 등록
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -15,18 +15,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // 번역 처리 함수
 async function handleTranslation(word, context) {
   try {
-    // 저장된 API 키 가져오기
+    // 저장된 HuggingFace API 토큰 가져오기
     const apiKey = await getApiKey();
     
     if (!apiKey) {
-      throw new Error('OpenAI API 키가 설정되지 않았습니다. 확장 프로그램 설정에서 API 키를 입력해주세요.');
+      throw new Error('HuggingFace API 토큰이 설정되지 않았습니다. 확장 프로그램 설정에서 토큰을 입력해주세요.');
     }
     
-    // DictionaryAPI.dev에서 기본 뜻 가져오기
-    const dictInfo = await callDictionaryAPI(word);
+    // HuggingFace phi-2 호출
+    const translation = await callPhi2(apiKey, word, context);
 
-    // OpenAI API 호출
-    const translation = await callOpenAI(apiKey, word, context, dictInfo);
     
     return translation;
   } catch (error) {
@@ -35,45 +33,20 @@ async function handleTranslation(word, context) {
   }
 }
 
-// API 키 가져오기 함수
+// HuggingFace API 토큰 가져오기 함수
 async function getApiKey() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['openai_api_key'], (result) => {
-      resolve(result.openai_api_key);
+    chrome.storage.sync.get(['hf_api_token'], (result) => {
+      resolve(result.hf_api_token);
     });
   });
 }
 
-// DictionaryAPI.dev에서 기본 의미 조회
-async function callDictionaryAPI(word) {
-  const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const data = await response.json();
-    if (Array.isArray(data) && data[0] && data[0].meanings && data[0].meanings[0]) {
-      const meaning = data[0].meanings[0];
-      const def = meaning.definitions && meaning.definitions[0] ? meaning.definitions[0] : {};
-      return {
-        definition: def.definition || '',
-        partOfSpeech: meaning.partOfSpeech || '',
-        example: def.example || ''
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error('Dictionary API error:', error);
-    return null;
-  }
-}
-
-// OpenAI API 호출 함수
-async function callOpenAI(apiKey, word, context, dictInfo) {
-  const url = 'https://api.openai.com/v1/chat/completions';
-
-  const dictSection = dictInfo && dictInfo.definition ? `사전 정의: ${dictInfo.definition}\n품사: ${dictInfo.partOfSpeech}\n예문: ${dictInfo.example}` : '';
-
-  const prompt = `다음 영어 단어를 주어진 문맥에서 가장 적절한 하나의 의미로 한국어로 번역해주세요. 여러 의미 중 문맥에 가장 맞는 하나만 선택해주세요. 사전 정의가 제공되면 참고하세요.
+// HuggingFace phi-2 호출 함수
+async function callPhi2(apiKey, word, context) {
+  const url = 'https://api-inference.huggingface.co/models/microsoft/phi-2';
+  
+  const prompt = `다음 영어 단어를 주어진 문맥에서 가장 적절한 하나의 의미로 한국어로 번역해주세요. 여러 의미 중 문맥에 가장 맞는 하나만 선택해주세요.
 
 단어: "${word}"
 문맥: "${context}"
@@ -87,19 +60,11 @@ ${dictSection}
 }`;
 
   const requestBody = {
-    model: "gpt-3.5-turbo",
-    messages: [
-      {
-        role: "system",
-        content: "당신은 영어-한국어 번역 전문가입니다. 주어진 문맥에서 가장 적절한 의미만을 선택하여 번역해주세요."
-      },
-      {
-        role: "user",
-        content: prompt
-      }
-    ],
-    temperature: 0.3,
-    max_tokens: 300
+    inputs: prompt,
+    parameters: {
+      max_new_tokens: 300,
+      temperature: 0.3
+    }
   };
 
   try {
@@ -114,25 +79,25 @@ ${dictSection}
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      
+
       if (response.status === 401) {
-        throw new Error('API 키가 유효하지 않습니다. 설정에서 올바른 OpenAI API 키를 입력해주세요.');
+        throw new Error('API 토큰이 유효하지 않습니다. 설정에서 올바른 HuggingFace 토큰을 입력해주세요.');
       } else if (response.status === 429) {
         throw new Error('API 사용량 한도에 도달했습니다. 잠시 후 다시 시도해주세요.');
       } else if (response.status === 500) {
-        throw new Error('OpenAI 서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.');
+        throw new Error('HuggingFace 서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.');
       } else {
-        throw new Error(`API 오류 (${response.status}): ${errorData?.error?.message || '알 수 없는 오류'}`);
+        throw new Error(`API 오류 (${response.status}): ${errorData?.error || '알 수 없는 오류'}`);
       }
     }
 
     const data = await response.json();
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+
+    if (!Array.isArray(data) || !data[0]?.generated_text) {
       throw new Error('올바르지 않은 API 응답입니다.');
     }
 
-    const content = data.choices[0].message.content.trim();
+    const content = data[0].generated_text.trim();
     
     // JSON 파싱 시도
     try {
@@ -158,7 +123,7 @@ ${dictSection}
     }
     
   } catch (error) {
-    console.error('OpenAI API call failed:', error);
+    console.error('HuggingFace API call failed:', error);
     throw error;
   }
 }
