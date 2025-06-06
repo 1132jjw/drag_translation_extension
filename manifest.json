@@ -12,7 +12,7 @@
   ],
   
   "host_permissions": [
-    "https://api.openai.com/*"
+    "https://api-inference.huggingface.co/*"
   ],
   
   "background": {
