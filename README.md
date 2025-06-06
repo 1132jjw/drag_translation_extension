@@ -111,11 +111,18 @@ extension/
 
 ### 모델 추론 시간 테스트
 
-`phi2_inference_test.py` 스크립트를 실행하면 phi-2 모델을 로드하여 한 번의
+`ai/phi2_inference_test.py` 스크립트를 실행하면 phi-2 모델을 로드하여 한 번의
 추론에 소요되는 시간을 측정할 수 있습니다.
 
 ```bash
-python phi2_inference_test.py
+python ai/phi2_inference_test.py
+```
+
+여러 LLM을 비교하고 싶다면 `ai/llm_performance_test.py` 스크립트를 사용하세요.
+모델 이름을 인자로 전달하면 각 모델의 추론 시간을 순차적으로 출력합니다.
+
+```bash
+python ai/llm_performance_test.py microsoft/phi-2 gpt2
 ```
 
 ## 문제 해결
