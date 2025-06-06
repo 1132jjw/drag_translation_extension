@@ -22,8 +22,11 @@ async function handleTranslation(word, context) {
       throw new Error('OpenAI API 키가 설정되지 않았습니다. 확장 프로그램 설정에서 API 키를 입력해주세요.');
     }
     
+    // DictionaryAPI.dev에서 기본 뜻 가져오기
+    const dictInfo = await callDictionaryAPI(word);
+
     // OpenAI API 호출
-    const translation = await callOpenAI(apiKey, word, context);
+    const translation = await callOpenAI(apiKey, word, context, dictInfo);
     
     return translation;
   } catch (error) {
@@ -41,14 +44,40 @@ async function getApiKey() {
   });
 }
 
+// DictionaryAPI.dev에서 기본 의미 조회
+async function callDictionaryAPI(word) {
+  const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (Array.isArray(data) && data[0] && data[0].meanings && data[0].meanings[0]) {
+      const meaning = data[0].meanings[0];
+      const def = meaning.definitions && meaning.definitions[0] ? meaning.definitions[0] : {};
+      return {
+        definition: def.definition || '',
+        partOfSpeech: meaning.partOfSpeech || '',
+        example: def.example || ''
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Dictionary API error:', error);
+    return null;
+  }
+}
+
 // OpenAI API 호출 함수
-async function callOpenAI(apiKey, word, context) {
+async function callOpenAI(apiKey, word, context, dictInfo) {
   const url = 'https://api.openai.com/v1/chat/completions';
-  
-  const prompt = `다음 영어 단어를 주어진 문맥에서 가장 적절한 하나의 의미로 한국어로 번역해주세요. 여러 의미 중 문맥에 가장 맞는 하나만 선택해주세요.
+
+  const dictSection = dictInfo && dictInfo.definition ? `사전 정의: ${dictInfo.definition}\n품사: ${dictInfo.partOfSpeech}\n예문: ${dictInfo.example}` : '';
+
+  const prompt = `다음 영어 단어를 주어진 문맥에서 가장 적절한 하나의 의미로 한국어로 번역해주세요. 여러 의미 중 문맥에 가장 맞는 하나만 선택해주세요. 사전 정의가 제공되면 참고하세요.
 
 단어: "${word}"
 문맥: "${context}"
+${dictSection}
 
 다음 JSON 형식으로만 응답해주세요:
 {

@@ -5,6 +5,7 @@ LLM을 활용하여 웹페이지에서 드래그한 영어 단어의 문맥에 �
 ## 주요 기능
 
 - **문맥 인식 번역**: OpenAI GPT를 사용하여 단어의 여러 의미 중 문맥에 가장 적합한 하나만 선택
+- **사전 정보 참고**: DictionaryAPI.dev에서 가져온 기본 정의를 LLM 프롬프트에 포함
 - **즉시 팝업**: 단어를 드래그하면 마우스 근처에 번역 팝업이 즉시 표시
 - **품사 및 예문 제공**: 의미와 함께 품사와 예문도 함께 제공
 - **반응형 UI**: 화면 경계를 고려한 스마트 팝업 위치 조정
@@ -76,6 +77,7 @@ extension/
 - **Background Service Worker**: OpenAI API 통신
 - **Chrome Storage API**: 설정 데이터 저장
 - **OpenAI GPT-3.5-turbo**: 문맥 기반 번역
+- **DictionaryAPI.dev**: 기본 영어 정의 제공
 
 ### 주요 API
 
@@ -83,6 +85,7 @@ extension/
 - `chrome.runtime.sendMessage`: Content Script ↔ Background 통신
 - `window.getSelection()`: 텍스트 선택 감지
 - `getBoundingClientRect()`: 팝업 위치 계산
+- `https://api.dictionaryapi.dev`: 영어 단어 정의 조회
 
 ### 보안 고려사항
 
