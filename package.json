@@ -1,0 +1,7 @@
+{
+  "name": "drag_translation_extension",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node test/content.test.js"
+  }
+}
