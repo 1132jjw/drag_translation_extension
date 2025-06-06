@@ -24,6 +24,7 @@ async function handleTranslation(word, context) {
     
     // HuggingFace phi-2 호출
     const translation = await callPhi2(apiKey, word, context);
+
     
     return translation;
   } catch (error) {
@@ -49,6 +50,7 @@ async function callPhi2(apiKey, word, context) {
 
 단어: "${word}"
 문맥: "${context}"
+${dictSection}
 
 다음 JSON 형식으로만 응답해주세요:
 {
