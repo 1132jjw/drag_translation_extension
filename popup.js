@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // API 키 저장 함수
-  function saveApiKey() {
+  async function saveApiKey() {
     const apiKey = apiKeyInput.value.trim();
     
     if (!apiKey) {
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    if (!validateApiKey(apiKey)) {
+    if (!(await validateApiKey(apiKey))) {
       showStatus('올바른 OpenAI API 키 형식이 아닙니다. (sk-로 시작해야 합니다)', 'error');
       return;
     }
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    if (!validateApiKey(apiKey)) {
+    if (!(await validateApiKey(apiKey))) {
       showStatus('올바른 OpenAI API 키 형식이 아닙니다.', 'error');
       return;
     }
