@@ -49,21 +49,28 @@ async function callDictionaryAPI(word) {
   const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`;
   try {
     const response = await fetch(url);
-    if (!response.ok) return null;
+    if (!response.ok) return [];
     const data = await response.json();
-    if (Array.isArray(data) && data[0] && data[0].meanings && data[0].meanings[0]) {
-      const meaning = data[0].meanings[0];
-      const def = meaning.definitions && meaning.definitions[0] ? meaning.definitions[0] : {};
-      return {
-        definition: def.definition || '',
-        partOfSpeech: meaning.partOfSpeech || '',
-        example: def.example || ''
-      };
+    const results = [];
+    if (Array.isArray(data)) {
+      for (const entry of data) {
+        if (entry.meanings) {
+          for (const meaning of entry.meanings) {
+            const defs = Array.isArray(meaning.definitions) ? meaning.definitions : [];
+            for (const def of defs) {
+              results.push({
+                definition: def.definition || '',
+                partOfSpeech: meaning.partOfSpeech || ''
+              });
+            }
+          }
+        }
+      }
     }
-    return null;
+    return results.slice(0, 5); // 최대 5개 의미 반환
   } catch (error) {
     console.error('Dictionary API error:', error);
-    return null;
+    return [];
   }
 }
 
@@ -71,19 +78,24 @@ async function callDictionaryAPI(word) {
 async function callOpenAI(apiKey, word, context, dictInfo) {
   const url = 'https://api.openai.com/v1/chat/completions';
 
-  const dictSection = dictInfo && dictInfo.definition ? `사전 정의: ${dictInfo.definition}\n품사: ${dictInfo.partOfSpeech}\n예문: ${dictInfo.example}` : '';
+  let dictSection = '';
+  if (Array.isArray(dictInfo) && dictInfo.length > 0) {
+    const list = dictInfo.map(d => `- (${d.partOfSpeech}) ${d.definition}`).join('\n');
+    dictSection = `사전 정의:\n${list}`;
+  }
 
-  const prompt = `다음 영어 단어를 주어진 문맥에서 가장 적절한 하나의 의미로 한국어로 번역해주세요. 여러 의미 중 문맥에 가장 맞는 하나만 선택해주세요. 사전 정의가 제공되면 참고하세요.
+  const prompt = `다음 영어 단어의 한국어 의미를 문맥에 맞게 알려주고, 단어가 포함된 문장을 한국어로 번역해주세요. 또한 사전에서 제공된 다른 뜻을 한국어로 번역하여 목록으로 제시해주세요.
 
 단어: "${word}"
 문맥: "${context}"
 ${dictSection}
 
-다음 JSON 형식으로만 응답해주세요:
+다음 JSON 형식으로만 답변하세요:
 {
   "meaning": "문맥에 맞는 한국어 의미",
-  "partOfSpeech": "품사 (명사, 동사, 형용사 등)",
-  "example": "해당 의미로 사용된 간단한 영어 예문"
+  "sentenceTranslation": "단어가 포함된 문장의 한국어 번역",
+  "partOfSpeech": "품사",
+  "otherMeanings": [{"partOfSpeech": "품사", "meaning": "다른 뜻"}]
 }`;
 
   const requestBody = {
@@ -145,8 +157,9 @@ ${dictSection}
       
       return {
         meaning: result.meaning,
+        sentenceTranslation: result.sentenceTranslation || '',
         partOfSpeech: result.partOfSpeech || '',
-        example: result.example || ''
+        otherMeanings: Array.isArray(result.otherMeanings) ? result.otherMeanings : []
       };
       
     } catch (parseError) {
@@ -170,15 +183,12 @@ function extractFromText(content, word) {
   
   let meaning = '';
   let partOfSpeech = '';
-  let example = '';
   
   for (const line of lines) {
     if (line.includes('의미') || line.includes('뜻') || line.includes('meaning')) {
       meaning = line.replace(/.*[:：]\s*/, '').replace(/["\{\}]/g, '').trim();
     } else if (line.includes('품사') || line.includes('part')) {
       partOfSpeech = line.replace(/.*[:：]\s*/, '').replace(/["\{\}]/g, '').trim();
-    } else if (line.includes('예문') || line.includes('example')) {
-      example = line.replace(/.*[:：]\s*/, '').replace(/["\{\}]/g, '').trim();
     }
   }
   
@@ -189,8 +199,9 @@ function extractFromText(content, word) {
   
   return {
     meaning: meaning || `"${word}"에 대한 번역을 찾을 수 없습니다.`,
+    sentenceTranslation: '',
     partOfSpeech: partOfSpeech,
-    example: example
+    otherMeanings: []
   };
 }
 
