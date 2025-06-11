@@ -780,6 +780,25 @@ select.form-control {
   border-left: 3px solid var(--color-primary);
 }
 
+.context-dict-sentence {
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-8);
+}
+
+.context-dict-others {
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-8);
+}
+
+.context-dict-others ul {
+  margin: var(--space-4) 0 0 16px;
+  padding: 0;
+}
+
+.context-dict-others li {
+  margin-bottom: var(--space-2);
+}
+
 .context-dict-example strong {
   color: var(--color-text);
   font-style: normal;
@@ -859,6 +878,14 @@ select.form-control {
   .context-dict-example {
     padding: var(--space-6);
     margin-top: var(--space-8);
+  }
+
+  .context-dict-sentence {
+    margin-top: var(--space-6);
+  }
+
+  .context-dict-others {
+    margin-top: var(--space-6);
   }
   
   .context-dict-meaning {

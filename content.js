@@ -141,7 +141,7 @@ function removePopup() {
 // 번역 결과 표시 함수
 function displayTranslation(popup, result) {
   const contentDiv = popup.querySelector('.context-dict-content');
-  
+
   if (result.error) {
     contentDiv.innerHTML = `
       <div class="context-dict-error">
@@ -150,13 +150,18 @@ function displayTranslation(popup, result) {
       </div>
     `;
   } else {
+    const otherList = Array.isArray(result.otherMeanings) && result.otherMeanings.length
+      ? '<ul>' + result.otherMeanings.map(m => `<li>${m.partOfSpeech ? '[' + m.partOfSpeech + '] ' : ''}${m.meaning}</li>`).join('') + '</ul>'
+      : '';
+
     contentDiv.innerHTML = `
       <div class="context-dict-translation">
         <div class="context-dict-meaning">
           <strong>의미:</strong> ${result.meaning}
         </div>
         ${result.partOfSpeech ? `<div class="context-dict-pos"><strong>품사:</strong> ${result.partOfSpeech}</div>` : ''}
-        ${result.example ? `<div class="context-dict-example"><strong>예문:</strong> ${result.example}</div>` : ''}
+        ${result.sentenceTranslation ? `<div class="context-dict-sentence"><strong>문장 번역:</strong> ${result.sentenceTranslation}</div>` : ''}
+        ${otherList ? `<div class="context-dict-others"><strong>다른 뜻:</strong> ${otherList}</div>` : ''}
       </div>
     `;
   }
