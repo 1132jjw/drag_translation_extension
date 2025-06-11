@@ -17,7 +17,7 @@ def measure_inference(model_name: str, prompt: str) -> float:
 
 def main():
     parser = argparse.ArgumentParser(description="Measure inference time for multiple LLM models")
-    parser.add_argument("models", nargs="*", default=["microsoft/phi-2"], help="HuggingFace model names")
+    parser.add_argument("models", nargs="*", default=["gpt2"], help="HuggingFace model names")
     args = parser.parse_args()
 
     prompt = (
